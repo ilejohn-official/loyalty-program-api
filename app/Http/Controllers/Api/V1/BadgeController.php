@@ -3,15 +3,19 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Models\User;
-use App\Models\Badge;
+use App\Services\BadgeService;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
-use App\Http\Requests\Api\V1\ShowBadgeRequest;
-use App\Http\Resources\BadgeResource;
 use App\Http\Resources\UserResource;
+use App\Http\Resources\BadgeResource;
+use App\Http\Requests\Api\V1\ShowBadgeRequest;
 
 class BadgeController extends Controller
 {
+  public function __construct(
+    protected BadgeService $badgeService
+  ) {}
+
   /**
    * Get user's badges.
    *
@@ -20,36 +24,30 @@ class BadgeController extends Controller
    */
   public function index(User $user): JsonResponse
   {
-    $badges = Badge::query()
-      ->forUser($user->id)
-      ->with(['user'])
-      ->get();
+    $badgeData = $this->badgeService->getUserBadges($user);
 
     return response()->json([
-      'data' => [
-        'badges' => BadgeResource::collection($badges),
-        'total_earned' => $badges->count(),
-        'highest_level' => $badges->max('level'),
-        'user' => new UserResource($user),
-      ],
+      'data' => array_merge(
+        $badgeData,
+        ['user' => new UserResource($user)]
+      )
     ]);
   }
 
   /**
    * Get specific badge details.
    *
-   * @param  \App\Models\User  $user
+   * @param  ShowBadgeRequest  $request
+   * @param  User  $user
    * @param  string  $badgeType
    * @return \Illuminate\Http\JsonResponse
    */
   public function show(ShowBadgeRequest $request, User $user, string $badgeType): JsonResponse
   {
-    $badge = Badge::query()
-      ->forUser($user->id)
-      ->where('badge_type', $badgeType)
-      ->firstOrFail();
     return response()->json([
-      'data' => new BadgeResource($badge),
+      'data' => new BadgeResource(
+        $this->badgeService->getUserBadgeByType($user, $badgeType)
+      )
     ]);
   }
 }
