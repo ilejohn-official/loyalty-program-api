@@ -2,12 +2,13 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Http\Controllers\Controller;
-use App\Models\LoyaltyTransaction;
-use App\Models\PaymentTransaction;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
+use App\Models\LoyaltyTransaction;
+use App\Models\PaymentTransaction;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\MonthlySummaryRequest;
+use App\Http\Requests\Api\V1\ProcessCashbackRequest;
 
 class LoyaltyController extends Controller
 {
@@ -43,13 +44,9 @@ class LoyaltyController extends Controller
    * @param  \App\Models\User  $user
    * @return \Illuminate\Http\JsonResponse
    */
-  public function processCashback(Request $request, User $user): JsonResponse
+  public function processCashback(ProcessCashbackRequest $request, User $user): JsonResponse
   {
-    $validated = $request->validate([
-      'amount' => ['required', 'numeric', 'min:0.01'],
-    ]);
-
-    // Create pending payment transaction
+    $validated = $request->validated();    // Create pending payment transaction
     $payment = PaymentTransaction::create([
       'user_id' => $user->id,
       'amount' => $validated['amount'],
@@ -74,7 +71,7 @@ class LoyaltyController extends Controller
    * @param  string  $yearMonth Format: YYYYMM
    * @return \Illuminate\Http\JsonResponse
    */
-  public function monthlySummary(User $user, string $yearMonth): JsonResponse
+  public function monthlySummary(MonthlySummaryRequest $request, User $user, string $yearMonth): JsonResponse
   {
     $transactions = LoyaltyTransaction::query()
       ->forUser($user->id)

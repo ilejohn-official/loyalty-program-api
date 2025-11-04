@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api\V1\Admin;
 use App\Models\User;
 use App\Models\Badge;
 use App\Models\Achievement;
-use Illuminate\Http\Request;
+use App\Http\Requests\Api\V1\Admin\ListUserAchievementsRequest;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 
@@ -17,7 +17,7 @@ class UserAchievementController extends Controller
    * @param  \Illuminate\Http\Request  $request
    * @return \Illuminate\Http\JsonResponse
    */
-  public function index(Request $request): JsonResponse
+  public function index(ListUserAchievementsRequest $request): JsonResponse
   {
     $users = User::query()
       ->withCount(['achievements', 'badges'])

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\ShowAchievementRequest;
 use App\Models\Achievement;
 use App\Models\User;
 use Illuminate\Http\JsonResponse;
@@ -39,13 +40,12 @@ class AchievementController extends Controller
    * @param  string  $achievementType
    * @return \Illuminate\Http\JsonResponse
    */
-  public function show(User $user, string $achievementType): JsonResponse
+  public function show(ShowAchievementRequest $request, User $user, string $achievementType): JsonResponse
   {
     $achievement = Achievement::query()
       ->forUser($user->id)
       ->where('achievement_type', $achievementType)
       ->firstOrFail();
-
     return response()->json([
       'data' => $achievement,
     ]);

@@ -2,11 +2,12 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Http\Controllers\Controller;
-use App\Models\Badge;
 use App\Models\User;
-use Illuminate\Http\JsonResponse;
+use App\Models\Badge;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
+use App\Http\Controllers\Controller;
+use App\Http\Requests\Api\V1\ShowBadgeRequest;
 
 class BadgeController extends Controller
 {
@@ -40,13 +41,12 @@ class BadgeController extends Controller
    * @param  string  $badgeType
    * @return \Illuminate\Http\JsonResponse
    */
-  public function show(User $user, string $badgeType): JsonResponse
+  public function show(ShowBadgeRequest $request, User $user, string $badgeType): JsonResponse
   {
     $badge = Badge::query()
       ->forUser($user->id)
       ->where('badge_type', $badgeType)
       ->firstOrFail();
-
     return response()->json([
       'data' => $badge,
     ]);
