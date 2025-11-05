@@ -1,58 +1,158 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Loyalty Program API
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel-based loyalty program API with achievement tracking, badges, and cashback rewards.
 
-## About Laravel
+## Payment Provider Configuration
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+The loyalty program supports multiple payment providers for processing cashback rewards. Currently supported providers:
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- Paystack
+- Flutterwave
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+### Setup Instructions
 
-## Learning Laravel
+1. Configure your environment variables in `.env`:
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+```env
+# Choose your payment provider (paystack or flutterwave)
+LOYALTY_PAYMENT_PROVIDER=paystack
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+# Paystack Configuration
+PAYSTACK_SECRET_KEY=your_paystack_secret_key
+PAYSTACK_PUBLIC_KEY=your_paystack_public_key
+PAYSTACK_BASE_URL=https://api.paystack.co
 
-## Laravel Sponsors
+# Flutterwave Configuration
+FLUTTERWAVE_SECRET_KEY=your_flutterwave_secret_key
+FLUTTERWAVE_PUBLIC_KEY=your_flutterwave_public_key
+FLUTTERWAVE_ENCRYPTION_KEY=your_flutterwave_encryption_key
+FLUTTERWAVE_BASE_URL=https://api.flutterwave.com/v3
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# Points and Cashback Configuration
+LOYALTY_POINTS_RATIO=100
+LOYALTY_MIN_CASHBACK_AMOUNT=10000
+LOYALTY_CASHBACK_PERCENTAGE=1.0
+```
 
-### Premium Partners
+3. Update your database to include the required user fields:
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+For Paystack:
 
-## Contributing
+```php
+// Add to your user migration or create a new migration
+$table->string('paystack_recipient_code')->nullable();
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+For Flutterwave:
 
-## Code of Conduct
+```php
+// Add to your user migration or create a new migration
+$table->string('flw_bank_code')->nullable();
+$table->string('flw_account_number')->nullable();
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### Switching Payment Providers
 
-## Security Vulnerabilities
+To switch between payment providers:
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+1. Update your `.env` file:
+
+```env
+LOYALTY_PAYMENT_PROVIDER=flutterwave  # or paystack
+```
+
+2. Clear your configuration cache:
+
+```bash
+php artisan config:clear
+```
+
+The application will automatically use the specified provider for all cashback transactions.
+
+### Points and Cashback Configuration
+
+Configure the loyalty program behavior in `config/loyalty.php`:
+
+```php
+'points' => [
+    'currency_to_point_ratio' => env('LOYALTY_POINTS_RATIO', 100),
+    'minimum_cashback_amount' => env('LOYALTY_MIN_CASHBACK_AMOUNT', 10000),
+    'cashback_percentage' => env('LOYALTY_CASHBACK_PERCENTAGE', 1.0),
+]
+```
+
+- `currency_to_point_ratio`: Amount in currency needed to earn 1 point
+- `minimum_cashback_amount`: Minimum purchase amount for cashback eligibility
+- `cashback_percentage`: Percentage of purchase amount awarded as cashback
+
+### Queue Configuration
+
+The loyalty program uses queues for processing purchases and notifications. Configure your queue driver in `.env`:
+
+```env
+QUEUE_CONNECTION=redis  # or database, sqs, etc.
+```
+
+Run the queue worker:
+
+```bash
+php artisan queue:work
+```
+
+### Testing Payment Providers
+
+To test the payment providers:
+
+1. Create test accounts with Paystack and Flutterwave
+2. Use test API keys in your development environment
+3. Test transactions using the providers' test card numbers
+
+Example test endpoints:
+
+```bash
+# Process a purchase
+POST /api/v1/users/{user}/purchases
+{
+    "amount": 15000,
+    "transaction_reference": "TXN_123456789"
+}
+
+# Check cashback status
+GET /api/v1/users/{user}/cashback
+```
+
+### Security Considerations
+
+1. Never commit real API keys to version control
+2. Use HTTPS for all API endpoints
+3. Validate transaction references with payment providers
+4. Implement rate limiting for API endpoints
+5. Keep payment provider secret keys secure
+
+### Adding New Payment Providers
+
+To add a new payment provider:
+
+1. Create a new service class implementing `PaymentServiceInterface`
+2. Add provider configuration to `config/loyalty.php`
+3. Update the service provider binding in `AppServiceProvider`
+
+Example:
+
+```php
+class NewPaymentProvider implements PaymentServiceInterface
+{
+    public function processCashback(User $user, float $amount): array
+    {
+        // Implementation
+    }
+
+    public function verifyTransaction(string $reference): bool
+    {
+        // Implementation
+    }
+}
+```
 
 ## License
 
