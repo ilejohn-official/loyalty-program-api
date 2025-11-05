@@ -4,56 +4,80 @@ namespace App\Services;
 
 use App\Events\BadgeUnlocked;
 use App\Models\Badge;
-use App\Models\User;
+use App\Models\Achievement;
+use App\DTOs\UserDto;
+use Illuminate\Support\Facades\DB;
+
 
 class BadgeService
 {
-  public function checkAndUnlockBadges(User $user): void
+  public function checkAndUnlockBadges(UserDto $user): void
   {
-    $completedAchievementsCount = $user->achievementProgress()
-      ->where('completed', true)
+    // Count completed achievements (unlocked records)
+    $completedAchievementsCount = Achievement::query()
+      ->where('user_id', $user->id)
       ->count();
 
-    $eligibleBadges = Badge::where('required_achievements', '<=', $completedAchievementsCount)
-      ->whereNotIn('id', function ($query) use ($user) {
-        $query->select('badge_id')
-          ->from('user_badges')
-          ->where('user_id', $user->id);
-      })
-      ->get();
+    // Simple badge thresholds can be configured in config/loyalty.php
+    $thresholds = config('loyalty.badges.thresholds', [
+      'first' => 1,
+      'bronze' => 5,
+      'silver' => 10,
+      'gold' => 25,
+    ]);
 
-    foreach ($eligibleBadges as $badge) {
-      $user->badges()->attach($badge->id, ['unlocked_at' => now()]);
-      event(new BadgeUnlocked($user, $badge));
+    foreach ($thresholds as $badgeType => $required) {
+      if ($completedAchievementsCount >= $required) {
+        // If user doesn't already have this badge, award it
+        $exists = Badge::query()
+          ->where('user_id', $user->id)
+          ->where('badge_type', $badgeType)
+          ->exists();
+
+        if (! $exists) {
+          $badge = Badge::create([
+            'user_id' => $user->id,
+            'badge_type' => $badgeType,
+            'level' => 1,
+            'earned_at' => now(),
+          ]);
+          event(new BadgeUnlocked($user, $badge));
+        }
+      }
     }
   }
 
-  public function getUserBadges(User $user): array
+  public function getUserBadges(UserDto $user): array
   {
-    $badges = Badge::query()
-      ->forUser($user->id)
-      ->with(['user'])
-      ->get();
+    $badgeStats = Badge::query()
+      ->where('user_id', $user->id)
+      ->selectRaw('
+        COUNT(*) as total_earned,
+        MAX(level) as highest_level,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            "id", id,
+            "badge_type", badge_type,
+            "level", level,
+            "earned_at", earned_at
+          )
+        ) as badge_details
+      ')
+      ->first();
+
+    $badges = json_decode($badgeStats->badge_details ?? '[]', true);
 
     return [
-      'badges' => $badges->map(function ($badge) {
-        return [
-          'id' => $badge->id,
-          'name' => $badge->name,
-          'description' => $badge->description,
-          'image_url' => $badge->image_url,
-          'unlocked_at' => $badge->pivot->unlocked_at
-        ];
-      }),
-      'total_earned' => $badges->count(),
-      'highest_level' => $badges->max('level')
+      'badges' => $badges,
+      'total_earned' => $badgeStats->total_earned ?? 0,
+      'highest_level' => $badgeStats->highest_level,
     ];
   }
 
-  public function getUserBadgeByType(User $user, string $badgeType): Badge
+  public function getUserBadgeByType(UserDto $user, string $badgeType): Badge
   {
     return Badge::query()
-      ->forUser($user->id)
+      ->where('user_id', $user->id)
       ->where('badge_type', $badgeType)
       ->firstOrFail();
   }

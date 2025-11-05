@@ -2,7 +2,8 @@
 
 namespace App\Services;
 
-use App\Models\User;
+use App\DTOs\UserDto;
+use App\Models\LoyaltyTransaction;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Contracts\Payment\PaymentServiceInterface;
@@ -15,7 +16,7 @@ class LoyaltyService
     protected PaymentServiceInterface $paymentService
   ) {}
 
-  public function processPurchase(User $user, float $amount, string $transactionReference): array
+  public function processPurchase(UserDto $user, float $amount, string $transactionReference): array
   {
     if (!$this->paymentService->verifyTransaction($transactionReference)) {
       return [
@@ -24,15 +25,29 @@ class LoyaltyService
       ];
     }
 
+    // Check for existing transaction with same reference
+    $exists = LoyaltyTransaction::query()
+      ->where('reference', $transactionReference)
+      ->exists();
+
+    if ($exists) {
+      return [
+        'success' => true,
+        'message' => 'Transaction already processed',
+        'idempotent' => true
+      ];
+    }
+
     try {
       DB::beginTransaction();
 
-      // Record loyalty transaction
-      $user->loyaltyTransactions()->create([
+      // Record loyalty transaction (will fail if duplicate due to unique index)
+      LoyaltyTransaction::create([
+        'user_id' => $user->id,
         'amount' => $amount,
         'type' => 'purchase',
         'points_earned' => $this->calculatePoints($amount),
-        'reference' => $transactionReference
+        'reference' => $transactionReference,
       ]);
 
       // Check and unlock achievements
@@ -72,7 +87,7 @@ class LoyaltyService
     return (int) ($amount / $ratio);
   }
 
-  protected function processCashbackIfEligible(User $user, float $amount): array
+  protected function processCashbackIfEligible(UserDto $user, float $amount): array
   {
     $minAmount = config('loyalty.points.minimum_cashback_amount', 10000);
     $percentage = config('loyalty.points.cashback_percentage', 1.0);
@@ -91,41 +106,45 @@ class LoyaltyService
     ];
   }
 
-  public function getUserStats(User $user): array
+  public function getUserStats(UserDto $user): array
   {
-    $totalPoints = $user->loyaltyTransactions()
-      ->where('type', 'purchase')
-      ->sum('points_earned');
+    // Get points total and recent transactions in one query
+    $stats = LoyaltyTransaction::query()
+      ->where('user_id', $user->id)
+      ->selectRaw('
+        COALESCE(SUM(CASE WHEN type = "purchase" THEN points_earned ELSE 0 END), 0) as total_points,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            "id", id,
+            "amount", amount,
+            "points_earned", points_earned,
+            "type", type,
+            "created_at", created_at
+          )
+          ORDER BY created_at DESC
+          LIMIT 10
+        ) as recent_transactions
+      ')
+      ->first();
 
     return [
-      'total_points' => $totalPoints,
+      'total_points' => $stats->total_points,
       'achievements' => $this->achievementService->getUserProgress($user),
       'badges' => $this->badgeService->getUserBadges($user),
-      'transactions' => $user->loyaltyTransactions()
-        ->latest()
-        ->take(10)
-        ->get()
-        ->map(fn($transaction) => [
-          'id' => $transaction->id,
-          'amount' => $transaction->amount,
-          'points_earned' => $transaction->points_earned,
-          'type' => $transaction->type,
-          'created_at' => $transaction->created_at
-        ])
-        ->toArray()
+      'transactions' => json_decode($stats->recent_transactions ?? '[]', true)
     ];
   }
 
-  public function getMonthlySummary(User $user, string $yearMonth): array
+  public function getMonthlySummary(UserDto $user, string $yearMonth): array
   {
-    $transactions = DB::table('loyalty_transactions')
+    $transactions = LoyaltyTransaction::query()
       ->where('user_id', $user->id)
-      ->whereRaw("DATE_FORMAT(created_at, '%Y%m') = ?", [$yearMonth])
-      ->select([
-        DB::raw('SUM(points_earned) as total_points'),
-        DB::raw('SUM(amount) as total_amount'),
-        DB::raw('COUNT(*) as transaction_count')
-      ])
+      ->whereRaw('DATE_FORMAT(created_at, "%Y%m") = ?', [$yearMonth])
+      ->selectRaw('
+        COALESCE(SUM(points_earned), 0) as total_points,
+        COALESCE(SUM(amount), 0) as total_amount,
+        COUNT(*) as transaction_count
+      ')
       ->first();
 
     return [

@@ -4,69 +4,101 @@ namespace App\Services;
 
 use App\Events\AchievementUnlocked;
 use App\Models\Achievement;
-use App\Models\User;
+use App\Models\AchievementProgress;
+use App\DTOs\UserDto;
 use Illuminate\Support\Facades\DB;
 
 class AchievementService
 {
-  public function checkAndUnlockAchievements(User $user, float $amount): void
+  public function checkAndUnlockAchievements(UserDto $user, float $amount): void
   {
-    $eligibleAchievements = Achievement::whereNotIn('id', function ($query) use ($user) {
-      $query->select('achievement_id')
-        ->from('achievement_progress')
-        ->where('user_id', $user->id)
-        ->where('completed', true);
-    })->get();
+    // Update progress and check for unlocked achievements in a single transaction
+    $progressAchievements = AchievementProgress::query()
+      ->where('user_id', $user->id)
+      ->selectRaw(
+        '
+        id,
+        achievement_type,
+        current_value,
+        target_value,
+        CASE 
+          WHEN achievement_type LIKE "%amount%" THEN current_value + ?
+          WHEN achievement_type LIKE "%count%" THEN current_value + 1
+          ELSE current_value
+        END as new_value',
+        [$amount]
+      )
+      ->get();
 
-    foreach ($eligibleAchievements as $achievement) {
-      $progress = $user->achievementProgress()
-        ->firstOrCreate(['achievement_id' => $achievement->id]);
+    foreach ($progressAchievements as $progress) {
+      // Update progress
+      AchievementProgress::query()
+        ->where('id', $progress->id)
+        ->update(['current_value' => $progress->new_value]);
 
-      if ($achievement->type === 'purchase_amount') {
-        $progress->progress += $amount;
-      } elseif ($achievement->type === 'purchase_count') {
-        $progress->progress += 1;
-      }
+      // Check if achievement should be unlocked
+      if ($progress->new_value >= $progress->target_value) {
+        // Try to create achievement - will fail if exists due to unique constraint
+        $achievement = Achievement::query()
+          ->firstOrCreate(
+            [
+              'user_id' => $user->id,
+              'achievement_type' => $progress->achievement_type
+            ],
+            [
+              'unlocked_at' => now(),
+              'metadata' => json_encode([])
+            ]
+          );
 
-      if ($progress->progress >= $achievement->target && !$progress->completed) {
-        $progress->completed = true;
-        $progress->completed_at = now();
-        $progress->save();
-
-        event(new AchievementUnlocked($user, $achievement));
-      } else {
-        $progress->save();
+        if ($achievement->wasRecentlyCreated) {
+          event(new AchievementUnlocked($user, $achievement));
+        }
       }
     }
   }
 
-  public function getUserProgress(User $user): array
+  public function getUserProgress(UserDto $user): array
   {
+    $progress = AchievementProgress::query()
+      ->where('user_id', $user->id)
+      ->selectRaw('
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            "achievement_type", achievement_type,
+            "current", current_value,
+            "target", target_value
+          )
+        ) as progress_data
+      ')
+      ->first();
+
     $achievements = Achievement::query()
-      ->forUser($user->id)
-      ->with(['user'])
-      ->get();
+      ->where('user_id', $user->id)
+      ->selectRaw('
+        COUNT(*) as total_unlocked,
+        JSON_ARRAYAGG(
+          JSON_OBJECT(
+            "id", id,
+            "achievement_type", achievement_type,
+            "unlocked_at", unlocked_at,
+            "metadata", metadata
+          )
+        ) as unlocked_data
+      ')
+      ->first();
 
     return [
-      'achievements' => $achievements->map(function ($achievement) {
-        return [
-          'id' => $achievement->id,
-          'name' => $achievement->name,
-          'description' => $achievement->description,
-          'progress' => $achievement->progress ?? 0,
-          'target' => $achievement->target,
-          'completed' => (bool) ($achievement->completed ?? false),
-          'completed_at' => $achievement->completed_at
-        ];
-      }),
-      'total_unlocked' => $achievements->where('completed', true)->count()
+      'progress' => json_decode($progress->progress_data ?? '[]', true),
+      'unlocked' => json_decode($achievements->unlocked_data ?? '[]', true),
+      'total_unlocked' => $achievements->total_unlocked ?? 0,
     ];
   }
 
-  public function getUserAchievementByType(User $user, string $achievementType): Achievement
+  public function getUserAchievementByType(UserDto $user, string $achievementType): Achievement
   {
     return Achievement::query()
-      ->forUser($user->id)
+      ->where('user_id', $user->id)
       ->where('achievement_type', $achievementType)
       ->firstOrFail();
   }
