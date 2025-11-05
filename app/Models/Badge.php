@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\BadgeType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -37,15 +38,9 @@ class Badge extends Model
   protected $casts = [
     'level' => 'integer',
     'earned_at' => 'datetime',
+    'badge_type' => BadgeType::class,
   ];
 
-  /**
-   * The user that earned the badge.
-   */
-  public function user(): BelongsTo
-  {
-    return $this->belongsTo(User::class);
-  }
 
   /**
    * Scope to a user's badges.

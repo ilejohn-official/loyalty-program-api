@@ -2,10 +2,11 @@
 
 namespace App\Services;
 
-use App\Events\BadgeUnlocked;
-use App\Models\Badge;
-use App\Models\Achievement;
 use App\DTOs\UserDto;
+use App\Models\Badge;
+use App\Enums\BadgeType;
+use App\Models\Achievement;
+use App\Events\BadgeUnlocked;
 use Illuminate\Support\Facades\DB;
 
 
@@ -18,16 +19,18 @@ class BadgeService
       ->where('user_id', $user->id)
       ->count();
 
-    // Simple badge thresholds can be configured in config/loyalty.php
+    // Badge thresholds from config
     $thresholds = config('loyalty.badges.thresholds', [
-      'first' => 1,
-      'bronze' => 5,
-      'silver' => 10,
-      'gold' => 25,
+      BadgeType::BRONZE_SPENDER->value => 5,
+      BadgeType::SILVER_SPENDER->value => 10,
+      BadgeType::GOLD_SPENDER->value => 25,
+      BadgeType::LOYAL_CUSTOMER->value => 15,
+      BadgeType::VIP_MEMBER->value => 50,
     ]);
 
-    foreach ($thresholds as $badgeType => $required) {
+    foreach ($thresholds as $badgeTypeValue => $required) {
       if ($completedAchievementsCount >= $required) {
+        $badgeType = BadgeType::from($badgeTypeValue);
         // If user doesn't already have this badge, award it
         $exists = Badge::query()
           ->where('user_id', $user->id)
@@ -38,7 +41,7 @@ class BadgeService
           $badge = Badge::create([
             'user_id' => $user->id,
             'badge_type' => $badgeType,
-            'level' => 1,
+            'level' => $badgeType->getDefaultLevel(),
             'earned_at' => now(),
           ]);
           event(new BadgeUnlocked($user, $badge));
@@ -74,7 +77,7 @@ class BadgeService
     ];
   }
 
-  public function getUserBadgeByType(UserDto $user, string $badgeType): Badge
+  public function getUserBadgeByType(UserDto $user, BadgeType $badgeType): Badge
   {
     return Badge::query()
       ->where('user_id', $user->id)

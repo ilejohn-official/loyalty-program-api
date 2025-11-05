@@ -8,6 +8,7 @@ use App\Http\Resources\AchievementResource;
 use App\Http\Resources\UserResource;
 use App\Services\AchievementService;
 use App\Services\UserClient;
+use App\Enums\AchievementType;
 use Illuminate\Http\JsonResponse;
 
 class AchievementController extends Controller
@@ -45,10 +46,10 @@ class AchievementController extends Controller
    *
    * @param  ShowAchievementRequest  $request
    * @param  int  $user_id
-   * @param  string  $achievementType
+   * @param  AchievementType  $achievementType
    * @return JsonResponse
    */
-  public function show(ShowAchievementRequest $request, int $user_id, string $achievementType, UserClient $userClient): JsonResponse
+  public function show(ShowAchievementRequest $request, int $user_id, AchievementType $achievementType, UserClient $userClient): JsonResponse
   {
     $user = $userClient->getById($user_id);
 

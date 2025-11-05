@@ -6,6 +6,7 @@ use App\Events\AchievementUnlocked;
 use App\Models\Achievement;
 use App\Models\AchievementProgress;
 use App\DTOs\UserDto;
+use App\Enums\AchievementType;
 use Illuminate\Support\Facades\DB;
 
 class AchievementService
@@ -16,17 +17,23 @@ class AchievementService
     $progressAchievements = AchievementProgress::query()
       ->where('user_id', $user->id)
       ->selectRaw(
-        '
+      '
         id,
         achievement_type,
         current_value,
         target_value,
         CASE 
-          WHEN achievement_type LIKE "%amount%" THEN current_value + ?
-          WHEN achievement_type LIKE "%count%" THEN current_value + 1
+          WHEN achievement_type IN (?, ?) THEN current_value + ?
+          WHEN achievement_type IN (?, ?) THEN current_value + 1
           ELSE current_value
         END as new_value',
-        [$amount]
+      [
+        AchievementType::SPEND_AMOUNT_100->value,
+        AchievementType::SPEND_AMOUNT_1000->value,
+        $amount,
+        AchievementType::PURCHASE_COUNT_5->value,
+        AchievementType::PURCHASE_COUNT_10->value
+      ]
       )
       ->get();
 
@@ -95,7 +102,7 @@ class AchievementService
     ];
   }
 
-  public function getUserAchievementByType(UserDto $user, string $achievementType): Achievement
+  public function getUserAchievementByType(UserDto $user, AchievementType $achievementType): Achievement
   {
     return Achievement::query()
       ->where('user_id', $user->id)

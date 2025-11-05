@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Enums\BadgeType;
+use Illuminate\Validation\Rules\Enum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ShowBadgeRequest extends FormRequest
@@ -22,7 +24,7 @@ class ShowBadgeRequest extends FormRequest
   public function rules(): array
   {
     return [
-      'badge_type' => ['required', 'string', 'max:255'],
+      'badge_type' => ['required', 'string', new Enum(BadgeType::class)],
     ];
   }
 }

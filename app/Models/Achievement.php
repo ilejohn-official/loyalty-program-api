@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\AchievementType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -47,15 +48,8 @@ class Achievement extends Model
   protected $casts = [
     'unlocked_at' => 'datetime',
     'metadata' => 'array',
+    'achievement_type' => AchievementType::class,
   ];
-
-  /**
-   * The user that owns the achievement.
-   */
-  public function user(): BelongsTo
-  {
-    return $this->belongsTo(User::class);
-  }
 
   /**
    * Scope a query to a specific user.

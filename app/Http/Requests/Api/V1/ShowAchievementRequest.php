@@ -2,7 +2,9 @@
 
 namespace App\Http\Requests\Api\V1;
 
+use App\Enums\AchievementType;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rules\Enum;
 
 class ShowAchievementRequest extends FormRequest
 {
@@ -22,7 +24,7 @@ class ShowAchievementRequest extends FormRequest
   public function rules(): array
   {
     return [
-      'achievement_type' => ['required', 'string', 'max:255'],
+      'achievement_type' => ['required', 'string', new Enum(AchievementType::class)],
     ];
   }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\PaymentStatus;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -40,13 +41,6 @@ class PaymentTransaction extends Model
    */
   protected $casts = [
     'amount' => 'decimal:2',
+    'status' => PaymentStatus::class,
   ];
-
-  /**
-   * The user who made the payment.
-   */
-  public function user(): BelongsTo
-  {
-    return $this->belongsTo(User::class);
-  }
 }

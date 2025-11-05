@@ -2,8 +2,9 @@
 
 namespace App\Http\Controllers\Api\V1;
 
-use App\Services\BadgeService;
+use App\Enums\BadgeType;
 use App\Services\UserClient;
+use App\Services\BadgeService;
 use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Controller;
 use App\Http\Resources\UserResource;
@@ -45,10 +46,10 @@ class BadgeController extends Controller
    *
    * @param  ShowBadgeRequest  $request
    * @param  int  $user_id
-   * @param  string  $badgeType
+   * @param  BadgeType  $badgeType
    * @return \Illuminate\Http\JsonResponse
    */
-  public function show(ShowBadgeRequest $request, int $user_id, string $badgeType, UserClient $userClient): JsonResponse
+  public function show(ShowBadgeRequest $request, int $user_id, BadgeType $badgeType, UserClient $userClient): JsonResponse
   {
     $user = $userClient->getById($user_id);
 

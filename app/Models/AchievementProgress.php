@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\AchievementType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
  * @property int $id
  * @property int $user_id
- * @property string $achievement_type
+ * @property AchievementType $achievement_type
  * @property float $current_value
  * @property float $target_value
  * @property \Illuminate\Support\Carbon|null $updated_at
@@ -29,5 +30,6 @@ class AchievementProgress extends Model
   protected $casts = [
     'current_value' => 'float',
     'target_value' => 'float',
+    'achievement_type' => AchievementType::class,
   ];
 }

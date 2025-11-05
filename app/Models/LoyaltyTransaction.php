@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\TransactionType;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,7 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
  * @property int $id
  * @property int $user_id
  * @property float $amount
- * @property string $type
+ * @property TransactionType $type
  * @property int $points_earned
  * @property \Illuminate\Support\Carbon|null $created_at
  */
@@ -35,12 +36,8 @@ class LoyaltyTransaction extends Model
     'amount' => 'decimal:2',
     'points_earned' => 'integer',
     'created_at' => 'datetime',
+    'type' => TransactionType::class,
   ];
-
-  public function user(): BelongsTo
-  {
-    return $this->belongsTo(User::class);
-  }
 
   /**
    * Scope transactions by month (YYYYMM) using created_at.
