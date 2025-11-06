@@ -1,8 +1,8 @@
 <?php
 
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
@@ -13,16 +13,16 @@ return new class extends Migration
     {
         Schema::create('loyalty_transactions', function (Blueprint $table) {
             $table->bigIncrements('id');
-      $table->unsignedBigInteger('user_id')->index();
+            $table->unsignedBigInteger('user_id')->index();
             $table->decimal('amount', 10, 2);
             $table->string('type');
-      $table->integer('points_earned')->default(0);
-      // Unique index for transaction reference to ensure idempotency
-      $table->string('reference')->unique();
-      $table->timestamps();
+            $table->integer('points_earned')->default(0);
+            // Unique index for transaction reference to ensure idempotency
+            $table->string('reference')->unique();
+            $table->timestamps();
 
-      // Index for type+user_id queries
-      $table->index(['type', 'user_id']);
+            // Index for type+user_id queries
+            $table->index(['type', 'user_id']);
         });
     }
 

@@ -2,10 +2,10 @@
 
 namespace App\Services\Payment;
 
-use App\DTOs\UserDto;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Http;
 use App\Contracts\Payment\PaymentServiceInterface;
+use App\DTOs\UserDto;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class PaystackService implements PaymentServiceInterface
 {
@@ -20,7 +20,7 @@ class PaystackService implements PaymentServiceInterface
         $this->baseUrl = $config['base_url'];
     }
 
-  public function processCashback(UserDto $user, float $amount): array
+    public function processCashback(UserDto $user, float $amount): array
     {
         try {
             $response = Http::withHeaders([

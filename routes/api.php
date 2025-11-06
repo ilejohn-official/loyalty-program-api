@@ -1,9 +1,9 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Api\V1\LoyaltyController;
 use App\Http\Controllers\Api\V1\AchievementController;
 use App\Http\Controllers\Api\V1\Admin\UserAchievementController;
+use App\Http\Controllers\Api\V1\LoyaltyController;
+use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------

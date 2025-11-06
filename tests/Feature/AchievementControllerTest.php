@@ -3,8 +3,8 @@
 use function Pest\Laravel\getJson;
 
 test('index returns user achievements and progress', function () {
-  // Arrange
-  \App\Models\Achievement::factory(2)->create([
+    // Arrange
+    \App\Models\Achievement::factory(2)->create([
         'user_id' => $this->user->id,
     ]);
 
@@ -22,9 +22,9 @@ test('index returns user achievements and progress', function () {
                 'progress',
                 'unlocked',
                 'total_unlocked',
-      'badges',
-      'total_earned',
-      'highest_level',
+                'badges',
+                'total_earned',
+                'highest_level',
                 'user' => [
                     'id',
                     'name',

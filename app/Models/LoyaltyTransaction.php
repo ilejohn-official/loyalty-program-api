@@ -4,7 +4,6 @@ namespace App\Models;
 
 use App\Enums\TransactionType;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 
 /**
@@ -26,13 +25,12 @@ class LoyaltyTransaction extends Model
     'amount',
     'type',
     'points_earned',
-    'reference'
+    'reference',
   ];
 
   protected $casts = [
     'amount' => 'decimal:2',
     'points_earned' => 'integer',
-    //'created_at' => 'datetime',
     'type' => TransactionType::class,
   ];
 }

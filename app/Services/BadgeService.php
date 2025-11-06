@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\DTOs\UserDto;
-use App\Models\Badge;
 use App\Enums\BadgeType;
-use App\Models\Achievement;
 use App\Events\BadgeUnlocked;
+use App\Models\Achievement;
+use App\Models\Badge;
 
 class BadgeService
 {
@@ -104,5 +104,5 @@ class BadgeService
             'total_earned' => $badgeStats->total_earned ?? 0,
             'highest_level' => $badgeStats->highest_level,
         ];
-  }
+    }
 }

@@ -1,20 +1,20 @@
 <?php
 
 use App\DTOs\UserDto;
-use App\Models\Achievement;
 use App\Enums\AchievementType;
 use App\Events\AchievementUnlocked;
+use App\Models\Achievement;
 use App\Models\AchievementProgress;
 use App\Services\AchievementService;
 use Illuminate\Support\Facades\Event;
 
 beforeEach(function () {
-  $this->achievementService = app()->make(AchievementService::class);
+    $this->achievementService = app()->make(AchievementService::class);
 });
 
 test('checkAndUnlockAchievements unlocks achievement when progress meets target', function () {
-  // Arrange
-  Event::fake([AchievementUnlocked::class]);
+    // Arrange
+    Event::fake([AchievementUnlocked::class]);
     $user = UserDto::fromModel($this->user);
     $achievementType = AchievementType::SPEND_AMOUNT_100;
 
@@ -35,7 +35,7 @@ test('checkAndUnlockAchievements unlocks achievement when progress meets target'
             ->where('achievement_type', $achievementType)
             ->exists()
     )->toBeTrue();
-  Event::assertDispatched(AchievementUnlocked::class);
+    Event::assertDispatched(AchievementUnlocked::class);
 });
 
 test('getUserProgress returns correct achievement stats', function () {
