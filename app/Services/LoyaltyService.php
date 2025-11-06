@@ -105,33 +105,4 @@ class LoyaltyService
       ),
     ];
   }
-
-  public function getUserStats(UserDto $user): array
-  {
-    // Get points total and recent transactions in one query
-    $stats = LoyaltyTransaction::query()
-      ->where('user_id', $user->id)
-      ->selectRaw('
-        COALESCE(SUM(CASE WHEN type = "purchase" THEN points_earned ELSE 0 END), 0) as total_points,
-        JSON_ARRAYAGG(
-          JSON_OBJECT(
-            "id", id,
-            "amount", amount,
-            "points_earned", points_earned,
-            "type", type,
-            "created_at", created_at
-          )
-          ORDER BY created_at DESC
-          LIMIT 10
-        ) as recent_transactions
-      ')
-      ->first();
-
-    return [
-      'total_points' => $stats->total_points,
-      'achievements' => $this->achievementService->getUserProgress($user),
-      'badges' => $this->badgeService->getUserBadges($user),
-      'transactions' => json_decode($stats->recent_transactions ?? '[]', true),
-    ];
-  }
 }

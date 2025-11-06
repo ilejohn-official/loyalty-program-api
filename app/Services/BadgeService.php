@@ -3,10 +3,10 @@
 namespace App\Services;
 
 use App\DTOs\UserDto;
-use App\Enums\BadgeType;
-use App\Events\BadgeUnlocked;
-use App\Models\Achievement;
 use App\Models\Badge;
+use App\Enums\BadgeType;
+use App\Models\Achievement;
+use App\Events\BadgeUnlocked;
 
 class BadgeService
 {
@@ -104,13 +104,5 @@ class BadgeService
             'total_earned' => $badgeStats->total_earned ?? 0,
             'highest_level' => $badgeStats->highest_level,
         ];
-    }
-
-    public function getUserBadgeByType(UserDto $user, BadgeType $badgeType): Badge
-    {
-        return Badge::query()
-            ->where('user_id', $user->id)
-            ->where('badge_type', $badgeType)
-            ->firstOrFail();
-    }
+  }
 }

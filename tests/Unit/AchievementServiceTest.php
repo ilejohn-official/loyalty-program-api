@@ -1,16 +1,20 @@
 <?php
 
 use App\DTOs\UserDto;
-use App\Enums\AchievementType;
 use App\Models\Achievement;
+use App\Enums\AchievementType;
+use App\Events\AchievementUnlocked;
 use App\Models\AchievementProgress;
+use App\Services\AchievementService;
+use Illuminate\Support\Facades\Event;
 
 beforeEach(function () {
-    $this->achievementService = app()->make(\App\Services\AchievementService::class);
+  $this->achievementService = app()->make(AchievementService::class);
 });
 
 test('checkAndUnlockAchievements unlocks achievement when progress meets target', function () {
-    // Arrange
+  // Arrange
+  Event::fake([AchievementUnlocked::class]);
     $user = UserDto::fromModel($this->user);
     $achievementType = AchievementType::SPEND_AMOUNT_100;
 
@@ -31,6 +35,7 @@ test('checkAndUnlockAchievements unlocks achievement when progress meets target'
             ->where('achievement_type', $achievementType)
             ->exists()
     )->toBeTrue();
+  Event::assertDispatched(AchievementUnlocked::class);
 });
 
 test('getUserProgress returns correct achievement stats', function () {
@@ -59,20 +64,4 @@ test('getUserProgress returns correct achievement stats', function () {
         ->and($result['total_unlocked'])->toBe(1)
         ->and($result['progress'])->toBeArray()
         ->and($result['unlocked'])->toBeArray();
-});
-
-test('getUserAchievementByType returns correct achievement', function () {
-    // Arrange
-    $user = UserDto::fromModel($this->user);
-    $achievement = Achievement::factory()->create([
-        'user_id' => $user->id,
-        'achievement_type' => AchievementType::FIRST_PURCHASE,
-    ]);
-
-    // Act
-    $result = $this->achievementService->getUserAchievementByType($user, AchievementType::FIRST_PURCHASE);
-
-    // Assert
-    expect($result->id)->toBe($achievement->id)
-        ->and($result->achievement_type)->toBe(AchievementType::FIRST_PURCHASE);
 });

@@ -2,10 +2,10 @@
 
 namespace App\Services\Payment;
 
-use App\Contracts\Payment\PaymentServiceInterface;
 use App\DTOs\UserDto;
-use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Http;
+use App\Contracts\Payment\PaymentServiceInterface;
 
 class FlutterwaveService implements PaymentServiceInterface
 {
@@ -20,12 +20,7 @@ class FlutterwaveService implements PaymentServiceInterface
         $this->baseUrl = $config['base_url'];
     }
 
-    public static function getConfigKey(): string
-    {
-        return 'flutterwave';
-    }
-
-    public function processCashback(UserDto $user, float $amount): array
+  public function processCashback(UserDto $user, float $amount): array
     {
         try {
             $response = Http::withHeaders([

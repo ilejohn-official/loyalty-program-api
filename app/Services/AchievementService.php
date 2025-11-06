@@ -108,12 +108,4 @@ class AchievementService
       'total_unlocked' => $achievements->total_unlocked ?? 0,
     ];
   }
-
-  public function getUserAchievementByType(UserDto $user, AchievementType $achievementType): Achievement
-  {
-    return Achievement::query()
-      ->where('user_id', $user->id)
-      ->where('achievement_type', $achievementType)
-      ->firstOrFail();
-  }
 }

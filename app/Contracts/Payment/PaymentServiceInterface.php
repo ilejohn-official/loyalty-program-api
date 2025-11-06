@@ -17,10 +17,5 @@ interface PaymentServiceInterface
     /**
      * Verify a transaction reference with the payment provider.
      */
-    public function verifyTransaction(string $reference): bool;
-
-    /**
-     * Return the provider config key (e.g. 'paystack' or 'flutterwave')
-     */
-    public static function getConfigKey(): string;
+  public function verifyTransaction(string $reference): bool;
 }
